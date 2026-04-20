@@ -1,3 +1,8 @@
+# Original Project Prompt & Requirements
+**Note**: This file contains the initial requirements that inspired this project. The application has since evolved into a full-stack, high-density hardware dashboard.
+
+---
+
 can you create a simple python or exe file program so that I can build something similar to
 
 

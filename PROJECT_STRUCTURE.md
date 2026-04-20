@@ -36,6 +36,16 @@ This project is a full-stack web application designed for high-speed file synchr
 
 - **Backend**: Node.js (Runtime), Express (Web Framework), tsx (Runner)
 - **Frontend**: React (UI Module), Vite (Build Tool), Tailwind CSS 4 (Styling)
+- **Visualization**: Recharts (Throughput Monitoring Graph)
 - **Icons**: Lucide React
 - **Animations**: motion (framer-motion)
 - **Automation**: Robocopy (Native Windows High-Performance Utility)
+
+## Core API Endpoints
+
+- `/api/status`: ICMP Bridge monitoring.
+- `/api/system`: Hardware platform and hostname detection.
+- `/api/fs/ls`: Dynamic directory listing for browser modal.
+- `/api/speedtest`: Thunderbolt 5 throughput simulation samples.
+- `/api/sync`: Robocopy mirroring execution.
+- `/api/github/*`: Push/Pull orchestration for remote backup.

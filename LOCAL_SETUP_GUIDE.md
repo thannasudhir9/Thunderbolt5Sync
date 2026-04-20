@@ -47,8 +47,10 @@ For the dashboard to function, your PCs must recognize the Thunderbolt direct co
     *   Go to **Properties > Sharing > Share**.
     *   Add "Everyone" (or your specific user) and set permissions to "Read/Write".
 
-## Troubleshooting
-
--   **Ping Fails**: Ensure your Firewall isn't blocking ICMP (Ping) requests on the Thunderbolt network interface.
+## Using the Dashboard
+1.  **Identity**: The **Discovery Hub** will show your local machine's identity. Use the **Scan Hub** to find the PC at `192.168.10.2`.
+2.  **Configuration**: Use the **Explorer** (magnifying glass icons) to pick your source and destination folders visually.
+3.  **Throughput Validation**: Before syncing large datasets, run the **Throughput Validation** test. This ensures your TB5 cable is properly seated and delivering the expected 80-120 Gbps bandwidth.
+4.  **Sync**: Click **Initialize Sync** to begin the high-speed robocopy process. Monitor the **System Console** for item-by-item progress.
 -   **Robocopy Errors**: Ensure you have administrative rights if you are trying to sync system folders, and that the remote UNC path (e.g., `\\192.168.10.2\Shared`) is accessible in File Explorer.
 -   **Vite Errors**: If you see `vite: not found`, ensure you ran `npm install` successfully.

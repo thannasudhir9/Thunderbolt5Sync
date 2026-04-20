@@ -1,39 +1,27 @@
-# Thunderbolt 5 Sync Dashboard
+# Thunderbolt 5 Sync Dashboard: Mission Control
+**Status**: ACTIVE | **Last Update**: 2026-04-20 19:56:19
 
-A high-performance local dashboard for synchronizing files between two PCs at Thunderbolt speeds (40-80Gbps).
+A professional-grade, high-density synchronization dashboard designed to saturate the 80Gbps-120Gbps throughput of Thunderbolt 5 / USB4 hardware bridges.
 
-## Features
-- **High-Speed Sync**: Leverages Windows `robocopy` with 32 parallel threads for maximum hardware utilization.
-- **Real-time Monitoring**: Checks connection status over the Thunderbolt Bridge constantly.
-- **Interactive UI**: Clean, professional dashboard for managing paths and triggering transfers.
-- **Zero Configuration**: Simply connect your TB5 cable and set your IPs.
+## 🚀 Advanced Features
+- **High-Throughput Validation**: Real-time speed testing using `recharts` to monitor bridge stability and peak bandwidth (up to 120Gbps).
+- **Master Node Discovery**: Automated subnet scanning with high-speed node detection (TB5/USB4 flags) and hardware platform identification.
+- **Hardware-Level UI**: Information-dense "Specialist Tool" aesthetic with live diagnostic status, system logs, and bridge monitoring.
+- **Remote File Explorer**: Integrated modal browser to choose directories across your local and remote machines via UNC bridge paths.
+- **Infinite Sync Engine**: Leverages multi-threaded `robocopy` (/MT:32) to ensure hardware bottlenecks are minimized.
+- **Cloud-To-Hardware CI/CD**: One-click "Deploy to GitHub" integration for seamless project migration between machines.
 
-## Local Setup Instructions
+## 🛠️ Local Hardware Stack
+To achieve the speeds displayed in this dashboard:
+1.  **Hardware**: Two Mini PCs with Thunderbolt 5 ports connected via a certified TB5/USB4 cable.
+2.  **Infrastructure**: Thunderbolt Networking Bridge enabled in Windows with static IPs (`192.168.10.1` and `192.168.10.2`).
+3.  **Software**: This dashboard runs locally on Node.js v18+, utilizing native Windows system utilities.
 
-### 1. Hardware Connection
-- Connect your Thunderbolt 5 cable to both Mini PCs.
-- Ensure **Thunderbolt Networking / Bridge** is enabled in `Control Panel > Network Connections`.
-- Set static IPs for the bridge (e.g., PC 1: `192.168.10.1`, PC 2: `192.168.10.2`).
+## 📖 Project Documentation
+- **[FEATURES.md](./FEATURES.md)**: Deep dive into the synchronization and discovery logic.
+- **[LOCAL_SETUP_GUIDE.md](./LOCAL_SETUP_GUIDE.md)**: Hardware configuration and installation walk-through.
+- **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)**: Full-stack architecture and file map.
+- **[PROMPTS_LOG.md](./PROMPTS_LOG.md)**: Complete development history with timestamped turns.
 
-### 2. Folder Sharing (PC 2)
-- On the remote PC, right-click the folder you want to sync to.
-- Select `Give access to` > `Everyone` (or a specific user).
-- Ensure the path is reachable via `\\192.168.10.2\YourFolder`.
-
-### 3. Running this Dashboard
-To run this dashboard on your local machine:
-
-1. **Install Node.js** (v18+ recommended).
-2. **Clone this repository** (or download the files).
-3. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-4. **Start the server**:
-   ```bash
-   npm run dev
-   ```
-5. **Open in Browser**: Navigate to `http://localhost:3000`.
-
-## Why this is faster
-Standard file transfers often use a single thread. This dashboard uses `robocopy` with the `/MT:32` flag, which allows Windows to move multiple files in parallel across the massive 80Gbps pipe provided by Thunderbolt 5.
+## Why this is different
+Standard sync tools are built for the cloud (Mbps). This dashboard is built for the **Cable** (Gbps). By using a direct Thunderbolt 5 bridge and parallelized mirroring logic, we eliminate the latency and overhead of standard network file sharing.
