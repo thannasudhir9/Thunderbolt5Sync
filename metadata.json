@@ -1,0 +1,6 @@
+{
+  "name": "Thunderbolt 5 Sync Dashboard",
+  "description": "A high-performance local dashboard for synchronizing files between two PCs at Thunderbolt speeds (40-80Gbps). Features high-speed robocopy automation and connection monitoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
