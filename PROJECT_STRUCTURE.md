@@ -26,7 +26,7 @@ This project is a full-stack web application designed for high-speed file synchr
 │
 ├── tsconfig.json        # TypeScript configuration
 │
-├── GITHUB_ACTIONS_TEMPLATE.md # Template for CI/CD workflow
+├── GITHUB_ACTIONS_README.md   # Template for CI/CD workflow
 │                        # (Move to .github/workflows/ if you have workflow token scope)
 │
 └── tsconfig.json        # TypeScript configuration

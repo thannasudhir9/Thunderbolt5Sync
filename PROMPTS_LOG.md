@@ -58,9 +58,9 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Updated `.env.example` to guide user on secure secret configuration.
 - Instructed user on how to add the token to AI Studio "Secrets" and how to bypass the repository rule violation if necessary.
 
-## Turn 8: 2026-04-20 18:50:29 (Current)
+## Turn 8: 2026-04-20 18:50:29
 **User Request**: Resolve workflow scope rejection from GitHub.
 **Solution**:
 - Identified that the provided token lacks the `workflow` scope required to push to `.github/workflows/`.
-- Relocated the deployment workflow to `GITHUB_ACTIONS_TEMPLATE.md` to unblock the push of all other project files.
+- Relocated the deployment workflow to `GITHUB_ACTIONS_README.md` (renamed from template at user request) to unblock the push of all other project files.
 - Provided instructions to the user on how to update their token scopes or manually restore the workflow file.
