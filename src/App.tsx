@@ -18,7 +18,12 @@ import {
   MonitorDot,
   Copy,
   Terminal as TerminalIcon,
-  HardDrive
+  HardDrive,
+  ChevronRight,
+  ChevronLeft,
+  File,
+  Search,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -54,6 +59,13 @@ interface SystemInfo {
   arch: string;
 }
 
+interface FileItem {
+  name: string;
+  isDirectory: boolean;
+  size: number;
+  mtime: string;
+}
+
 export default function App() {
   const [config, setConfig] = useState<Config>({ localDir: '', remoteDir: '', remoteIp: '' });
   const [status, setStatus] = useState<Status | null>(null);
@@ -61,6 +73,10 @@ export default function App() {
   const [scannedNodes, setScannedNodes] = useState<ScannedNode[]>([]);
   const [selectedNodeIps, setSelectedNodeIps] = useState<string[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [browserMode, setBrowserMode] = useState<'local' | 'remote' | null>(null);
+  const [browserPath, setBrowserPath] = useState('');
+  const [browserItems, setBrowserItems] = useState<FileItem[]>([]);
+  const [isBrowserLoading, setIsBrowserLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
@@ -223,6 +239,36 @@ export default function App() {
     } catch (err) {
       console.error('Failed to update config');
     }
+  };
+
+  const openBrowser = async (mode: 'local' | 'remote') => {
+    setBrowserMode(mode);
+    const initialPath = mode === 'local' ? (config.localDir || '/') : (config.remoteDir || `\\\\${config.remoteIp}\\SharedFolder`);
+    setBrowserPath(initialPath);
+    fetchBrowserItems(initialPath);
+  };
+
+  const fetchBrowserItems = async (path: string) => {
+    setIsBrowserLoading(true);
+    try {
+      const res = await fetch(`/api/fs/ls?path=${encodeURIComponent(path)}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setBrowserItems(data);
+    } catch (err: any) {
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] Browser Error: ${err.message}`, ...prev]);
+    } finally {
+      setIsBrowserLoading(false);
+    }
+  };
+
+  const selectBrowserPath = (path: string) => {
+    if (browserMode === 'local') {
+      updateConfig({ localDir: path });
+    } else {
+      updateConfig({ remoteDir: path });
+    }
+    setBrowserMode(null);
   };
 
   const runSync = async () => {
@@ -565,16 +611,24 @@ export default function App() {
                 <label className="text-[10px] font-mono text-[#71717A] uppercase flex items-center gap-2">
                   <Monitor className="w-3 h-3" /> Local Path (Source)
                 </label>
-                <div className="relative group">
-                  <Folder className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717A] group-focus-within:text-[#F27D26] transition-colors" />
-                  <input 
-                    type="text"
-                    value={config.localDir}
-                    onChange={(e) => setConfig({ ...config, localDir: e.target.value })}
-                    onBlur={(e) => updateConfig({ localDir: e.target.value })}
-                    placeholder="C:\Users\Name\Documents"
-                    className="w-full bg-[#09090B] border border-white/5 focus:border-[#F27D26] rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none transition-all"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative group flex-1">
+                    <Folder className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717A] group-focus-within:text-[#F27D26] transition-colors" />
+                    <input 
+                      type="text"
+                      value={config.localDir}
+                      onChange={(e) => setConfig({ ...config, localDir: e.target.value })}
+                      onBlur={(e) => updateConfig({ localDir: e.target.value })}
+                      placeholder="C:\Users\Name\Documents"
+                      className="w-full bg-[#09090B] border border-white/5 focus:border-[#F27D26] rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none transition-all"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => openBrowser('local')}
+                    className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[#71717A] hover:text-white transition-colors"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -582,16 +636,24 @@ export default function App() {
                 <label className="text-[10px] font-mono text-[#71717A] uppercase flex items-center gap-2">
                   <ArrowRightLeft className="w-3 h-3" /> Remote Path (Destination)
                 </label>
-                <div className="relative group">
-                  <Monitor className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717A] group-focus-within:text-[#F27D26] transition-colors" />
-                  <input 
-                    type="text"
-                    value={config.remoteDir}
-                    onChange={(e) => setConfig({ ...config, remoteDir: e.target.value })}
-                    onBlur={(e) => updateConfig({ remoteDir: e.target.value })}
-                    placeholder="\\192.168.10.2\Shared"
-                    className="w-full bg-[#09090B] border border-white/5 focus:border-[#F27D26] rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none transition-all"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative group flex-1">
+                    <Monitor className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717A] group-focus-within:text-[#F27D26] transition-colors" />
+                    <input 
+                      type="text"
+                      value={config.remoteDir}
+                      onChange={(e) => setConfig({ ...config, remoteDir: e.target.value })}
+                      onBlur={(e) => updateConfig({ remoteDir: e.target.value })}
+                      placeholder="\\192.168.10.2\Shared"
+                      className="w-full bg-[#09090B] border border-white/5 focus:border-[#F27D26] rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none transition-all"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => openBrowser('remote')}
+                    className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[#71717A] hover:text-white transition-colors"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -705,6 +767,156 @@ export default function App() {
           Engineered for Unlimited Thunderbolt 5 Synchronisation
         </p>
       </footer>
+      {/* Browser Modal Overlay */}
+      <AnimatePresence>
+        {browserMode && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setBrowserMode(null)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 md:inset-auto md:w-[600px] md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 bg-[#18181B] border border-white/10 rounded-2xl shadow-2xl z-[101] flex flex-col overflow-hidden"
+            >
+              <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#1C1C20]">
+                <div className="flex items-center gap-3">
+                  <div className="bg-[#F27D26]/10 p-1.5 rounded-lg">
+                    <Folder className="w-5 h-5 text-[#F27D26]" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-sm uppercase tracking-wide">
+                      {browserMode === 'local' ? 'Local Explorer' : 'Remote Bridge Explorer'}
+                    </h3>
+                    <p className="text-[10px] font-mono text-[#71717A]">Target: {browserPath}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setBrowserMode(null)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-colors text-[#71717A] hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-hidden flex flex-col">
+                {/* Navigation Bar */}
+                <div className="p-2 bg-[#09090B] flex items-center gap-1 border-b border-white/10">
+                  <button 
+                    onClick={() => {
+                      const parts = browserPath.split(/[\\/]/).filter(Boolean);
+                      if (parts.length > 1) {
+                         const separator = browserPath.includes('\\') ? '\\' : '/';
+                         const prefix = browserPath.startsWith('\\\\') ? '\\\\' : (browserPath.startsWith('/') ? '/' : '');
+                         const newPath = prefix + parts.slice(0, -1).join(separator);
+                         setBrowserPath(newPath);
+                         fetchBrowserItems(newPath);
+                      }
+                    }}
+                    className="p-1.5 hover:bg-white/10 rounded text-[#A1A1AA] hover:text-white"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <input 
+                    type="text" 
+                    value={browserPath}
+                    onChange={(e) => setBrowserPath(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchBrowserItems(browserPath)}
+                    className="flex-1 bg-transparent border-none text-[11px] font-mono text-white outline-none"
+                  />
+                  <button 
+                    onClick={() => fetchBrowserItems(browserPath)}
+                    className="p-1.5 hover:bg-white/10 rounded text-[#A1A1AA] hover:text-white"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isBrowserLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {/* Items List */}
+                <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-thin">
+                  {isBrowserLoading ? (
+                    <div className="h-full flex items-center justify-center opacity-40">
+                      <RefreshCw className="w-8 h-8 animate-spin" />
+                    </div>
+                  ) : browserItems.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-[#3F3F46] gap-2">
+                       <Folder className="w-12 h-12 opacity-20" strokeWidth={1} />
+                       <p className="text-xs uppercase tracking-widest font-mono">Empty Directory</p>
+                    </div>
+                  ) : (
+                    browserItems.map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          if (item.isDirectory) {
+                             const separator = browserPath.includes('\\') ? '\\' : '/';
+                             const newPath = browserPath.endsWith(separator) ? `${browserPath}${item.name}` : `${browserPath}${separator}${item.name}`;
+                             setBrowserPath(newPath);
+                             fetchBrowserItems(newPath);
+                          } else {
+                             // If it's a file, we treat selecting it as choosing its parent or the file itself?
+                             // Usually in sync we pick folders, but maybe files too.
+                             // Let's allow selecting the path.
+                             const separator = browserPath.includes('\\') ? '\\' : '/';
+                             selectBrowserPath(`${browserPath}${separator}${item.name}`);
+                          }
+                        }}
+                        className="w-full group flex items-center justify-between p-2 hover:bg-[#F27D26]/10 rounded-lg text-left transition-all border border-transparent hover:border-[#F27D26]/20"
+                      >
+                        <div className="flex items-center gap-3">
+                          {item.isDirectory ? (
+                            <Folder className="w-4 h-4 text-[#F27D26] opacity-60 group-hover:opacity-100" />
+                          ) : (
+                            <File className="w-4 h-4 text-[#A1A1AA] opacity-40" />
+                          )}
+                          <div className="overflow-hidden">
+                            <p className="text-[11px] font-medium text-[#A1A1AA] group-hover:text-white truncate transition-colors">{item.name}</p>
+                            <p className="text-[8px] font-mono text-[#3F3F46] uppercase">
+                              {item.isDirectory ? 'Directory' : `${(item.size / 1024 / 1024).toFixed(2)} MB`}
+                            </p>
+                          </div>
+                        </div>
+                        {item.isDirectory ? (
+                          <ChevronRight className="w-3 h-3 text-[#3F3F46] group-hover:text-[#F27D26] transition-colors" />
+                        ) : (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const separator = browserPath.includes('\\') ? '\\' : '/';
+                              selectBrowserPath(`${browserPath}${separator}${item.name}`);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 px-2 py-1 bg-[#F27D26]/20 text-[#F27D26] text-[8px] font-bold rounded border border-[#F27D26]/30 uppercase hover:bg-[#F27D26] hover:text-white transition-all"
+                          >
+                             Select
+                          </button>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 bg-[#1C1C20] border-t border-white/10 flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                   <div className="w-2 h-2 rounded-full bg-[#F27D26] shadow-[0_0_8px_#F27D26] animate-pulse" />
+                   <span className="text-[10px] font-mono text-[#71717A] uppercase tracking-tighter">Connection Stable via TB5</span>
+                 </div>
+                 <button 
+                    onClick={() => selectBrowserPath(browserPath)}
+                    className="px-6 py-2 bg-[#F27D26] hover:bg-[#ff8c40] text-white text-[10px] font-bold rounded-lg uppercase tracking-widest shadow-lg shadow-[#F27D26]/20 active:scale-95 transition-all"
+                 >
+                   Select Current Folder
+                 </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

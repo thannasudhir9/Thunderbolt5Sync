@@ -136,9 +136,17 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Added multi-select capability to discovered nodes with visual indicators and automatic configuration binding for the primary target.
 - Enhanced the UI with `MonitorDot` and `Cpu` iconography to better represent hardware-level synchronization.
 
-## Turn 19: 2026-04-20 19:34:14 (Current)
+## Turn 19: 2026-04-20 19:34:14
 **User Request**: Enhance the 'Discovery Hub' section to display the local machine's hostname, detected IP addresses, and Thunderbolt/USB4 port information.
 **Solution**:
 - Refined the "Master Node Ident" UI with a high-density "Hardware Tool" aesthetic, including an information-rich grid for platform and port architecture.
 - Implemented a scrollable list for multiple detected IPv4 assignments with one-click "Copy to Clipboard" functionality.
 - Added visual security indicators and diagnostic status badges (e.g., "ACTIVE" state) to provide a more operational feel to the local system monitor.
+
+## Turn 20: 2026-04-20 19:45:16 (Current)
+**User Request**: Add a file browser component for remote/local path selection.
+**Solution**:
+- Implemented `/api/fs/ls` in `server.ts` to provide directory listing with UNC path simulation for demo purposes.
+- Developed a full-screen `AnimatePresence` modal browser in `App.tsx` with high-speed bridge styling.
+- Integrated path selection logic that automatically updates `localDir` or `remoteDir` in the configuration state.
+- Added interactive navigation, breadcrumbs, and file-size detection to the Explorer UI.

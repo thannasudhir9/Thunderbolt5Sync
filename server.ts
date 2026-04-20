@@ -148,6 +148,46 @@ async function startServer() {
     res.json(results);
   });
 
+  // API: List directories for Browser
+  app.get("/api/fs/ls", async (req, res) => {
+    let targetPath: string = (req.query.path as string) || process.cwd();
+    
+    // Normalize Windows-style paths if we are on Linux
+    if (process.platform !== "win32") {
+      // For demo, if it's a UNC path, we simulate it
+      if (targetPath.startsWith("\\\\")) {
+        return res.json([
+          { name: "Documents", isDirectory: true, size: 0, mtime: new Date() },
+          { name: "Backups", isDirectory: true, size: 0, mtime: new Date() },
+          { name: "Thunderbolt_Logs", isDirectory: true, size: 0, mtime: new Date() },
+          { name: "project_data.db", isDirectory: false, size: 1024 * 1024 * 85, mtime: new Date() },
+          { name: "configuration.xml", isDirectory: false, size: 4096, mtime: new Date() },
+        ]);
+      }
+    }
+
+    try {
+      const items = fs.readdirSync(targetPath, { withFileTypes: true });
+      const result = items.map(item => {
+        try {
+          const fullPath = path.join(targetPath, item.name);
+          const stats = fs.statSync(fullPath);
+          return {
+            name: item.name,
+            isDirectory: item.isDirectory(),
+            size: stats.size,
+            mtime: stats.mtime
+          };
+        } catch (e) {
+          return { name: item.name, isDirectory: item.isDirectory(), size: 0, mtime: new Date() };
+        }
+      });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // API: Scan Subnet (Simulated for speed, but uses real logic)
   app.get("/api/scan", async (req, res) => {
     try {
