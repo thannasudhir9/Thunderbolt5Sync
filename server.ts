@@ -215,8 +215,19 @@ async function startServer() {
 
   // API: Push to GitHub
   app.post("/api/github/push", async (req, res) => {
-    // Note: These credentials were provided by the user for this specific repository.
-    const gitUrl = "https://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@github.com/thannasudhir9/Thunderbolt5Sync.git";
+    // SECURITY: We now use environment variables instead of hardcoded tokens 
+    // to pass GitHub's Push Protection rules.
+    const token = process.env.GITHUB_TOKEN;
+    const repoUrl = "github.com/thannasudhir9/Thunderbolt5Sync.git";
+    
+    if (!token) {
+      return res.status(400).json({ 
+        status: "Error", 
+        message: "GITHUB_TOKEN environment variable is missing. Please add it in Settings > Secrets." 
+      });
+    }
+
+    const gitUrl = `https://${token}@${repoUrl}`;
     
     // We'll use a more surgical approach to git commands
     const git = (args: string[]) => {
@@ -257,20 +268,19 @@ async function startServer() {
       // We push local 'master' to remote 'master'
       try {
         const pushOutput: any = await git(["push", gitUrl, "master", "--force"]);
-        log += "Master push successful!\n" + pushOutput;
+        log += "Master push successful!\n";
       } catch (e: any) {
         log += `Master push failed: ${e.error || e.message}. Trying 'main' branch...\n`;
         // Try pushing to 'main' as a fallback if the remote expects main
         await git(["branch", "-M", "main"]);
         const pushOutput: any = await git(["push", gitUrl, "main", "--force"]);
-        log += "Main push successful!\n" + pushOutput;
+        log += "Main push successful!\n";
       }
 
       res.json({ status: "Success", output: log });
     } catch (error: any) {
       const errorDetail = error.error || error.message || JSON.stringify(error);
       log += `FATAL ERROR: ${errorDetail}\n`;
-      // We send the full log as the message so the user can see exactly why it failed in the alert
       res.status(500).json({ status: "Error", message: errorDetail, output: log });
     }
   });

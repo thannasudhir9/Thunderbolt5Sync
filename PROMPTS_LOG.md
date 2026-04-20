@@ -43,9 +43,17 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Switched to a pure "Force Replace" strategy for pushing to ensure repository synchronization regardless of historical conflicts.
 - Enhanced error reporting to surface granular `stderr` output to the user UI for faster troubleshooting.
 
-## Turn 6: 2026-04-20 18:47:36 (Current)
+## Turn 6: 2026-04-20 18:47:36
 **User Request**: Fix "Failed to check status" error.
 **Solution**:
 - Hardened the `/api/status` endpoint in `server.ts` by adding a 2-second timeout and robust error handling for the `ping` command.
 - Prevented 500 errors by catching all exceptions and returning a detailed error JSON instead.
 - Added a descriptive fallback message for cloud environments where ICMP/Ping is restricted, ensuring the UI remains functional without crashing.
+
+## Turn 7: 2026-04-20 18:48:59 (Current)
+**User Request**: Resolve GITHUB PUSH PROTECTION rule violation (secret scanning).
+**Solution**:
+- Removed the hardcoded Personal Access Token from `server.ts` to comply with GitHub Security best practices.
+- Transitioned the GitHub integration to use a `GITHUB_TOKEN` environment variable.
+- Updated `.env.example` to guide user on secure secret configuration.
+- Instructed user on how to add the token to AI Studio "Secrets" and how to bypass the repository rule violation if necessary.
