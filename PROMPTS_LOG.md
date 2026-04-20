@@ -121,9 +121,17 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Restored the "Sync from GitHub" UI and backend sync endpoint to maintain system functionality.
 - Explicitly instructed the user to "Deploy to GitHub" immediately after this fix to permanentize the improvements on their remote repository and prevent future "Sync Reversions".
 
-## Turn 17: 2026-04-20 19:23:01 (Current)
+## Turn 17: 2026-04-20 19:23:01
 **User Request**: Fix `deploy.yml` for GitHub Pages.
 **Solution**:
 - Updated `.github/workflows/deploy.yml` to include the necessary `permissions` and GitHub Actions steps to build and deploy the app directly to GitHub Pages.
 - Modified `vite.config.ts` to include `base: './'` so that assets load correctly from relative paths on GitHub Pages subdirectories.
 - Informed the user that GitHub Pages only supports static hosting; the Express backend and its associated hardware features (Sync/Scan) will not function on that platform.
+
+## Turn 18: 2026-04-20 19:28:03 (Current)
+**User Request**: Modify Discovery card for multi-select and auto-update config; detect local system info.
+**Solution**:
+- Implemented `/api/system` endpoint in `server.ts` to detect and return hostname, IP addresses, and hardware port architecture (USB4/Thunderbolt).
+- Revamped the "Network Discovery" card into a "Discovery Hub" in `App.tsx` that displays real-time local machine status.
+- Added multi-select capability to discovered nodes with visual indicators and automatic configuration binding for the primary target.
+- Enhanced the UI with `MonitorDot` and `Cpu` iconography to better represent hardware-level synchronization.

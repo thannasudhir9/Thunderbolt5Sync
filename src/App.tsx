@@ -13,7 +13,9 @@ import {
   ArrowRightLeft,
   Github,
   CloudUpload,
-  ArrowDownCircle
+  ArrowDownCircle,
+  Cpu,
+  MonitorDot,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -41,11 +43,21 @@ interface ScannedNode {
   isThunderbolt: boolean;
 }
 
+interface SystemInfo {
+  hostname: string;
+  ips: string[];
+  ports: string;
+  platform: string;
+  arch: string;
+}
+
 export default function App() {
   const [config, setConfig] = useState<Config>({ localDir: '', remoteDir: '', remoteIp: '' });
   const [status, setStatus] = useState<Status | null>(null);
   const [interfaces, setInterfaces] = useState<NetworkInterface[]>([]);
   const [scannedNodes, setScannedNodes] = useState<ScannedNode[]>([]);
+  const [selectedNodeIps, setSelectedNodeIps] = useState<string[]>([]);
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
@@ -58,10 +70,21 @@ export default function App() {
   useEffect(() => {
     fetchConfig();
     fetchInterfaces();
+    fetchSystemInfo();
     checkStatus();
     const interval = setInterval(checkStatus, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchSystemInfo = async () => {
+    try {
+      const res = await fetch('/api/system');
+      const data = await res.json();
+      setSystemInfo(data);
+    } catch (err) {
+      console.error('Failed to fetch system info');
+    }
+  };
 
   const pushToGithub = async () => {
     if (isPushing) return;
@@ -302,10 +325,10 @@ export default function App() {
         <div className="lg:col-span-12 xl:col-span-4 space-y-6">
 
           {/* Network Discovery Card */}
-          <section className="bg-[#18181B] border border-white/10 rounded-2xl p-6">
+          <section className="bg-[#18181B] border border-white/10 rounded-2xl p-6 overflow-hidden relative">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-mono text-[#71717A] uppercase flex items-center gap-2">
-                <Activity className="w-4 h-4" /> Network Discovery
+                <Activity className="w-4 h-4" /> Discovery Hub
               </h2>
               <button 
                 onClick={() => scanNetwork()}
@@ -317,12 +340,38 @@ export default function App() {
             </div>
 
             <div className="space-y-4">
+              {/* Current System Info */}
+              {systemInfo && (
+                <div className="bg-gradient-to-br from-[#18181B] to-[#09090B] border border-[#F27D26]/20 rounded-xl p-4 relative group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="bg-[#F27D26]/10 p-2 rounded-lg group-hover:bg-[#F27D26]/20 transition-colors">
+                      <Cpu className="w-4 h-4 text-[#F27D26]" />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-mono text-[#71717A] uppercase">Current Machine</p>
+                      <h3 className="text-sm font-bold text-white tracking-tight">{systemInfo.hostname}</h3>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white/5 p-2 rounded-lg">
+                      <p className="text-[8px] font-mono text-[#71717A] uppercase mb-1">Local IP</p>
+                      <p className="text-xs font-mono text-white">{systemInfo.ips[0] || 'Unknown'}</p>
+                    </div>
+                    <div className="bg-white/5 p-2 rounded-lg">
+                      <p className="text-[8px] font-mono text-[#71717A] uppercase mb-1">Ports Architecture</p>
+                      <p className="text-xs font-mono text-[#F27D26] truncate">{systemInfo.ports}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Local Interfaces */}
               <div className="bg-[#09090B] border border-white/5 rounded-xl p-3">
-                <p className="text-[9px] font-mono text-[#71717A] uppercase mb-2">Local Interfaces Detected</p>
+                <p className="text-[9px] font-mono text-[#71717A] uppercase mb-2">Interfaces Detail</p>
                 <div className="space-y-1">
                   {interfaces.map((iface, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs font-mono">
+                    <div key={i} className="flex items-center justify-between text-[10px] font-mono">
                       <span className="text-[#A1A1AA]">{iface.name}</span>
                       <span className="text-white">{iface.address}</span>
                     </div>
@@ -332,6 +381,14 @@ export default function App() {
 
               {/* Scanned Nodes */}
               <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2 scrollbar-thin">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[9px] font-mono text-[#71717A] uppercase">Discovered Nodes</p>
+                  {selectedNodeIps.length > 0 && (
+                    <span className="text-[8px] bg-[#F27D26]/10 text-[#F27D26] px-2 py-0.5 rounded-full font-mono uppercase tracking-tighter">
+                      {selectedNodeIps.length} SELECTED
+                    </span>
+                  )}
+                </div>
                 {scannedNodes.length === 0 ? (
                   <p className="text-[11px] text-[#3F3F46] italic py-2">No remote nodes discovered yet. Run a scan to see nearby PCs.</p>
                 ) : (
@@ -339,27 +396,51 @@ export default function App() {
                     <button
                       key={i}
                       onClick={() => {
-                        const newIp = node.ip;
-                        const newRemoteDir = config.remoteDir.replace(/\d+\.\d+\.\d+\.\d+/, newIp);
-                        updateConfig({ remoteIp: newIp, remoteDir: newRemoteDir });
+                        const isSelected = selectedNodeIps.includes(node.ip);
+                        const newSelected = isSelected 
+                          ? selectedNodeIps.filter(ip => ip !== node.ip)
+                          : [...selectedNodeIps, node.ip];
+                        
+                        setSelectedNodeIps(newSelected);
+                        
+                        // Update config with the latest selection
+                        if (!isSelected || newSelected.length > 0) {
+                          const targetIp = node.ip;
+                          // If current remoteDir is empty or just a placeholder, use a standard layout
+                          const baseRemotePath = config.remoteDir || `\\\\${targetIp}\\SharedFolder`;
+                          const newRemoteDir = baseRemotePath.includes('.') 
+                            ? baseRemotePath.replace(/\d+\.\d+\.\d+\.\d+/, targetIp)
+                            : `\\\\${targetIp}\\SharedFolder`;
+                            
+                          updateConfig({ remoteIp: targetIp, remoteDir: newRemoteDir });
+                        }
                       }}
                       className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left
-                        ${config.remoteIp === node.ip 
+                        ${selectedNodeIps.includes(node.ip) 
                           ? 'bg-[#F27D26]/10 border-[#F27D26] text-[#F27D26]' 
                           : 'bg-white/5 border-white/5 hover:border-white/20 text-[#A1A1AA]'}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`p-1.5 rounded-lg ${node.isThunderbolt ? 'bg-[#F27D26]/20' : 'bg-white/10'}`}>
-                          {node.isThunderbolt ? <Zap className="w-3 h-3 text-[#F27D26]" /> : <Monitor className="w-3 h-3" />}
+                        <div className={`p-1.5 rounded-lg transition-colors ${selectedNodeIps.includes(node.ip) ? 'bg-[#F27D26]/20' : 'bg-white/5'}`}>
+                          <MonitorDot className="w-3.5 h-3.5" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold font-mono">{node.ip}</p>
-                          <p className="text-[9px] uppercase tracking-tighter opacity-60">
+                          <p className={`text-xs font-bold font-mono leading-none mb-1 ${selectedNodeIps.includes(node.ip) ? 'text-white' : ''}`}>{node.ip}</p>
+                          <p className={`text-[9px] uppercase tracking-tighter opacity-60 ${selectedNodeIps.includes(node.ip) ? 'text-[#F27D26]' : ''}`}>
                             {node.isThunderbolt ? 'Thunderbolt Bridge' : 'Standard Ethernet'}
                           </p>
                         </div>
                       </div>
-                      {config.remoteIp === node.ip && <CheckCircle2 className="w-3 h-3" />}
+                      <div className="flex flex-col items-end gap-1">
+                        {node.isThunderbolt && (
+                          <span className="text-[10px] text-[#F27D26] animate-pulse">
+                            <Zap className="w-3 h-3 fill-[#F27D26]" />
+                          </span>
+                        )}
+                        {selectedNodeIps.includes(node.ip) && (
+                          <div className="w-2 h-2 rounded-full bg-[#F27D26] shadow-[0_0_8px_#F27D26]" />
+                        )}
+                      </div>
                     </button>
                   ))
                 )}
