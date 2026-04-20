@@ -78,8 +78,16 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Verified that the backend is correctly configured to use the `GITHUB_TOKEN` environment variable.
 - Instructed the user to securely add the new token to the AI Studio "Secrets" manager to maintain security compliance and avoid further repository rule violations.
 
-## Turn 11: 2026-04-20 19:01:44 (Current)
+## Turn 11: 2026-04-20 19:01:44
 **User Request**: Fix "Cannot access 'process' before initialization" error.
 **Solution**:
 - Identified a variable shadowing conflict where a local variable named `process` was interfering with the global Node.js `process` object.
 - Renamed the local variable to `gitProc` in `server.ts` to resolve the Temporal Dead Zone (TDZ) initialization error.
+
+## Turn 12: 2026-04-20 19:04:26 (Current)
+**User Request**: Fix "Failed to check status" and "Failed to scan network" console errors.
+**Solution**:
+- Hardened the `/api/scan` endpoint by wrapping it in a try-catch block and adding an `.on("error")` handler for the spawned `arp` process.
+- Implemented a 3-second safety timeout for the network scanner to prevent hanging requests when OS commands fail or are restricted.
+- Updated the React frontend to gracefully handle non-ok HTTP responses and provided more descriptive logging in the application console.
+- Ensured a consistent fallback to demo nodes if network discovery is blocked by the environment, maintaining UI interactivity.

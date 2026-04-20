@@ -104,7 +104,10 @@ export default function App() {
   const scanNetwork = async (subnet?: string) => {
     if (!subnet) {
       // Use first available subnet if not specified
-      if (interfaces.length === 0) return;
+      if (interfaces.length === 0) {
+         setLogs(prev => [`[${new Date().toLocaleTimeString()}] Cannot scan: No network interfaces detected.`, ...prev]);
+         return;
+      }
       subnet = interfaces[0].address.split('.').slice(0, 3).join('.');
     }
     
@@ -112,11 +115,16 @@ export default function App() {
     setLogs(prev => [`[${new Date().toLocaleTimeString()}] Initiating network scan on subnet ${subnet}.x...`, ...prev]);
     try {
       const res = await fetch(`/api/scan?subnet=${subnet}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Server Error" }));
+        throw new Error(errorData.error || `HTTP ${res.status}`);
+      }
       const data = await res.json();
       setScannedNodes(data.nodes);
       setLogs(prev => [`[${new Date().toLocaleTimeString()}] Discovery complete. Identified ${data.nodes.length} active nodes.`, ...prev]);
-    } catch (err) {
-      console.error('Failed to scan network');
+    } catch (err: any) {
+      console.error('Failed to scan network:', err);
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] Network Scan Error: ${err.message}`, ...prev]);
     } finally {
       setIsScanning(false);
     }
@@ -125,10 +133,14 @@ export default function App() {
   const checkStatus = async () => {
     try {
       const res = await fetch('/api/status');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setStatus(data);
-    } catch (err) {
-      console.error('Failed to check status');
+    } catch (err: any) {
+      console.error('Failed to check status:', err);
+      // We don't log to the UI console for status to prevent spam, 
+      // but we update the status object to show the error
+      setStatus({ connected: false, error: "Status check failed. Please check backend connection." });
     }
   };
 
