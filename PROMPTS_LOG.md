@@ -128,10 +128,17 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Modified `vite.config.ts` to include `base: './'` so that assets load correctly from relative paths on GitHub Pages subdirectories.
 - Informed the user that GitHub Pages only supports static hosting; the Express backend and its associated hardware features (Sync/Scan) will not function on that platform.
 
-## Turn 18: 2026-04-20 19:28:03 (Current)
+## Turn 18: 2026-04-20 19:28:03
 **User Request**: Modify Discovery card for multi-select and auto-update config; detect local system info.
 **Solution**:
 - Implemented `/api/system` endpoint in `server.ts` to detect and return hostname, IP addresses, and hardware port architecture (USB4/Thunderbolt).
 - Revamped the "Network Discovery" card into a "Discovery Hub" in `App.tsx` that displays real-time local machine status.
 - Added multi-select capability to discovered nodes with visual indicators and automatic configuration binding for the primary target.
 - Enhanced the UI with `MonitorDot` and `Cpu` iconography to better represent hardware-level synchronization.
+
+## Turn 19: 2026-04-20 19:34:14 (Current)
+**User Request**: Enhance the 'Discovery Hub' section to display the local machine's hostname, detected IP addresses, and Thunderbolt/USB4 port information.
+**Solution**:
+- Refined the "Master Node Ident" UI with a high-density "Hardware Tool" aesthetic, including an information-rich grid for platform and port architecture.
+- Implemented a scrollable list for multiple detected IPv4 assignments with one-click "Copy to Clipboard" functionality.
+- Added visual security indicators and diagnostic status badges (e.g., "ACTIVE" state) to provide a more operational feel to the local system monitor.

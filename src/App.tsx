@@ -16,6 +16,9 @@ import {
   ArrowDownCircle,
   Cpu,
   MonitorDot,
+  Copy,
+  Terminal as TerminalIcon,
+  HardDrive
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -342,26 +345,81 @@ export default function App() {
             <div className="space-y-4">
               {/* Current System Info */}
               {systemInfo && (
-                <div className="bg-gradient-to-br from-[#18181B] to-[#09090B] border border-[#F27D26]/20 rounded-xl p-4 relative group">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="bg-[#F27D26]/10 p-2 rounded-lg group-hover:bg-[#F27D26]/20 transition-colors">
-                      <Cpu className="w-4 h-4 text-[#F27D26]" />
+                <div className="bg-[#09090B] border border-[#F27D26]/30 rounded-xl p-4 relative group overflow-hidden shadow-[inset_0_0_20px_rgba(242,125,38,0.05)]">
+                  <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <MonitorDot className="w-12 h-12 text-[#F27D26]" />
+                  </div>
+                  
+                  <div className="flex items-center gap-3 mb-4 relative z-10">
+                    <div className="bg-[#F27D26] p-2 rounded-lg shadow-[0_0_15px_rgba(242,125,38,0.3)]">
+                      <Cpu className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                      <p className="text-[9px] font-mono text-[#71717A] uppercase">Current Machine</p>
-                      <h3 className="text-sm font-bold text-white tracking-tight">{systemInfo.hostname}</h3>
+                      <p className="text-[9px] font-mono text-[#F27D26] font-bold uppercase tracking-widest">Master Node Ident</p>
+                      <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                        {systemInfo.hostname}
+                        <span className="text-[8px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded border border-green-500/30 font-mono">ACTIVE</span>
+                      </h3>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-white/5 p-2 rounded-lg">
-                      <p className="text-[8px] font-mono text-[#71717A] uppercase mb-1">Local IP</p>
-                      <p className="text-xs font-mono text-white">{systemInfo.ips[0] || 'Unknown'}</p>
+                  <div className="space-y-3 relative z-10">
+                    {/* Device Specs Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-white/5 border border-white/5 p-2 rounded-lg hover:border-white/10 transition-colors">
+                        <p className="text-[8px] font-mono text-[#71717A] uppercase mb-1 flex items-center gap-1">
+                          <TerminalIcon className="w-2.5 h-2.5" /> Platform
+                        </p>
+                        <p className="text-[11px] font-mono text-white flex items-center gap-1.5 capitalize">
+                          {systemInfo.platform} <span className="opacity-40 text-[9px]">({systemInfo.arch})</span>
+                        </p>
+                      </div>
+                      <div className="bg-white/5 border border-white/5 p-2 rounded-lg hover:border-white/10 transition-colors">
+                        <p className="text-[8px] font-mono text-[#71717A] uppercase mb-1 flex items-center gap-1">
+                          <Zap className="w-2.5 h-2.5" /> High-Speed I/O
+                        </p>
+                        <p className="text-[10px] font-mono text-[#F27D26] font-bold truncate">
+                          {systemInfo.ports}
+                        </p>
+                      </div>
                     </div>
-                    <div className="bg-white/5 p-2 rounded-lg">
-                      <p className="text-[8px] font-mono text-[#71717A] uppercase mb-1">Ports Architecture</p>
-                      <p className="text-xs font-mono text-[#F27D26] truncate">{systemInfo.ports}</p>
+
+                    {/* IP Addresses List */}
+                    <div className="bg-[#020617] border border-white/5 rounded-lg p-2.5">
+                      <p className="text-[8px] font-mono text-[#71717A] uppercase mb-2 flex items-center justify-between">
+                        <span>Network Assignments</span>
+                        <span className="text-[7px] opacity-40">IPv4 Stack</span>
+                      </p>
+                      <div className="space-y-1.5 max-h-[64px] overflow-y-auto pr-1 scrollbar-thin">
+                        {systemInfo.ips.map((ip, idx) => (
+                          <div key={idx} className="flex items-center justify-between group/ip">
+                            <div className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#F27D26]/40" />
+                              <span className="text-[11px] font-mono text-white/90">{ip}</span>
+                            </div>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(ip);
+                                setLogs(prev => [`[${new Date().toLocaleTimeString()}] IP ${ip} copied to clipboard`, ...prev]);
+                              }}
+                              className="opacity-0 group-hover/ip:opacity-100 p-1 hover:bg-white/10 rounded transition-all text-[#71717A] hover:text-white"
+                            >
+                              <Copy className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  </div>
+                  
+                  {/* Digital Scrawl / Decorative */}
+                  <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                    <div className="flex gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-[#F27D26] animate-ping" />
+                      <div className="w-1 h-1 rounded-full bg-[#F27D26] opacity-40" />
+                      <div className="w-1 h-1 rounded-full bg-[#F27D26] opacity-10" />
+                    </div>
+                    <span className="text-[7px] font-mono text-[#3F3F46] tracking-[.2em] uppercase">Security Level: Hardened</span>
                   </div>
                 </div>
               )}
