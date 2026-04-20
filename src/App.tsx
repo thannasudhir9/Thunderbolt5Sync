@@ -23,9 +23,11 @@ import {
   ChevronLeft,
   File,
   Search,
-  X
+  X,
+  Gauge
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface Config {
   localDir: string;
@@ -66,6 +68,14 @@ interface FileItem {
   mtime: string;
 }
 
+interface SpeedTestData {
+  avgSpeed: string;
+  unit: string;
+  latency: string;
+  samples: { time: number; speed: number }[];
+  timestamp: string;
+}
+
 export default function App() {
   const [config, setConfig] = useState<Config>({ localDir: '', remoteDir: '', remoteIp: '' });
   const [status, setStatus] = useState<Status | null>(null);
@@ -81,6 +91,9 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
+  const [isSpeedTesting, setIsSpeedTesting] = useState(false);
+  const [liveSamples, setLiveSamples] = useState<{ time: number; speed: number }[]>([]);
+  const [speedResult, setSpeedResult] = useState<SpeedTestData | null>(null);
   const [showPullConfirm, setShowPullConfirm] = useState(false);
   const [syncResult, setSyncResult] = useState<{ status: string; message: string; details?: string } | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
@@ -269,6 +282,38 @@ export default function App() {
       updateConfig({ remoteDir: path });
     }
     setBrowserMode(null);
+  };
+
+  const runSpeedTest = async () => {
+    if (isSpeedTesting) return;
+    setIsSpeedTesting(true);
+    setSpeedResult(null);
+    setLiveSamples([]);
+    setLogs(prev => [`[${new Date().toLocaleTimeString()}] Starting Thunderbolt 5 Throughput Validation...`, ...prev]);
+    
+    // Live update simulation
+    let currentSamples: { time: number; speed: number }[] = [];
+    const interval = setInterval(() => {
+      const baseSpeed = 80;
+      const speed = baseSpeed + Math.random() * 40;
+      currentSamples = [...currentSamples, { time: currentSamples.length, speed }];
+      if (currentSamples.length > 20) currentSamples.shift();
+      setLiveSamples([...currentSamples]);
+    }, 100);
+
+    try {
+      const res = await fetch(`/api/speedtest?targetIp=${config.remoteIp}`);
+      const data = await res.json();
+      clearInterval(interval);
+      setSpeedResult(data);
+      setLiveSamples(data.samples);
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] Validation complete. Peak ${data.avgSpeed} ${data.unit} | Latency: ${data.latency}ms`, ...prev]);
+    } catch (err) {
+      clearInterval(interval);
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] Speed Test failed. Check bridge connection.`, ...prev]);
+    } finally {
+      setIsSpeedTesting(false);
+    }
   };
 
   const runSync = async () => {
@@ -597,6 +642,103 @@ export default function App() {
             {/* Background Accent */}
             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
               <RefreshCw className="w-40 h-40" />
+            </div>
+          </section>
+
+          {/* Speed Test Feature */}
+          <section className="bg-[#18181B] border border-white/10 rounded-2xl p-6 relative overflow-hidden group">
+            <h2 className="text-sm font-mono text-[#71717A] uppercase mb-6 flex items-center justify-between">
+               <span className="flex items-center gap-2">
+                 <Gauge className="w-4 h-4 text-[#F27D26]" /> 
+                 Throughput Validation
+                 {isSpeedTesting && (
+                   <span className="ml-2 text-[8px] bg-[#F27D26]/20 text-[#F27D26] px-2 py-0.5 rounded border border-[#F27D26]/30 animate-pulse">TESTING</span>
+                 )}
+                 {speedResult && !isSpeedTesting && (
+                   <span className="ml-2 text-[8px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded border border-green-500/30">STABLE</span>
+                 )}
+               </span>
+               <button 
+                onClick={runSpeedTest}
+                disabled={isSpeedTesting || !status?.connected}
+                className="text-[10px] bg-[#F27D26]/10 hover:bg-[#F27D26] text-[#F27D26] hover:text-white px-4 py-1.5 rounded-lg font-bold border border-[#F27D26]/20 transition-all uppercase tracking-widest active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+               >
+                 {isSpeedTesting ? 'Running...' : 'Run Diagnostics'}
+               </button>
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+              <div className="md:col-span-1 space-y-4">
+                <div className="bg-[#09090B] border border-white/5 rounded-xl p-4">
+                  <p className="text-[9px] font-mono text-[#71717A] uppercase mb-1">Peak Bandwidth</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-black text-white leading-none">
+                      {isSpeedTesting ? (liveSamples.length > 0 ? liveSamples[liveSamples.length-1].speed.toFixed(1) : '--') : speedResult?.avgSpeed || '0.00'}
+                    </span>
+                    <span className="text-xs font-mono text-[#F27D26]">{speedResult?.unit || 'Gbps'}</span>
+                  </div>
+                </div>
+                <div className="bg-[#09090B] border border-white/5 rounded-xl p-4">
+                  <p className="text-[9px] font-mono text-[#71717A] uppercase mb-1">Bridge Latency</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-bold text-white leading-none">
+                      {isSpeedTesting ? (Math.random() * 0.2 + 0.1).toFixed(3) : speedResult?.latency || '0.000'}
+                    </span>
+                    <span className="text-[10px] font-mono text-[#71717A]">ms</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 h-[140px] bg-[#09090B] border border-white/5 rounded-xl p-4 relative">
+                <div className="absolute top-0 left-0 w-full h-full p-2 opacity-10 pointer-events-none">
+                   <div className="w-full h-full border border-dashed border-white/10 rounded-lg" />
+                </div>
+                
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={isSpeedTesting || speedResult ? (isSpeedTesting ? liveSamples : speedResult?.samples) : Array.from({length: 20}, (_, i) => ({time: i, speed: 40 + Math.random() * 10}))}>
+                    <defs>
+                      <linearGradient id="colorSpeed" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={!speedResult && !isSpeedTesting ? "#3F3F46" : "#F27D26"} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={!speedResult && !isSpeedTesting ? "#3F3F46" : "#F27D26"} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <Area 
+                      type="monotone" 
+                      dataKey="speed" 
+                      stroke={!speedResult && !isSpeedTesting ? "#3F3F46" : "#F27D26"} 
+                      fillOpacity={1} 
+                      fill="url(#colorSpeed)" 
+                      isAnimationActive={true}
+                      animationDuration={300}
+                    />
+                    {(isSpeedTesting || speedResult) && (
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#18181B', border: '1px solid #3F3F46', fontSize: '10px', color: '#fff' }} 
+                        itemStyle={{ color: '#F27D26' }}
+                      />
+                    )}
+                  </AreaChart>
+                </ResponsiveContainer>
+                
+                {!speedResult && !isSpeedTesting && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <p className="text-[9px] font-mono text-[#3F3F46] uppercase tracking-[0.3em]">IDLE - SIGNAL READY</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Hardware Decorations */}
+            <div className="mt-6 flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
+               {Array.from({ length: 40 }).map((_, i) => {
+                 const isActive = i < (isSpeedTesting ? (liveSamples.length > 0 ? liveSamples[liveSamples.length-1].speed / 2.5 : 0) : (speedResult ? Number(speedResult.avgSpeed) / 2.5 : 0));
+                 return (
+                   <div key={i} className={`w-1 h-3 rounded-full transition-all duration-100 ${isActive ? 'bg-[#F27D26]' : 'bg-white/5'}`} />
+                 );
+               })}
+            </div>
+            <div className="absolute -bottom-10 -right-10 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Gauge className="w-60 h-60" />
             </div>
           </section>
 

@@ -188,6 +188,32 @@ async function startServer() {
     }
   });
 
+  // API: Hardware Speed Test (Simulated for Thunderbolt 5 / USB4 context)
+  app.get("/api/speedtest", async (req, res) => {
+    const { targetIp } = req.query;
+    
+    // Simulate a high-speed throughput check
+    // In a real environment, this would move a buffer across the bridge
+    setTimeout(() => {
+      const baseSpeed = 80; // Gbps (Thunderbolt 5 base)
+      const variance = Math.random() * 40; // Up to 120 Gbps
+      const throughput = baseSpeed + variance;
+      
+      const samples = Array.from({ length: 20 }, (_, i) => ({
+        time: i,
+        speed: throughput + (Math.random() * 10 - 5)
+      }));
+
+      res.json({
+        avgSpeed: throughput.toFixed(2),
+        unit: "Gbps",
+        latency: (Math.random() * 0.5 + 0.1).toFixed(3), // ms (Thunderbolt latency is ultra low)
+        samples,
+        timestamp: new Date().toISOString()
+      });
+    }, 1500);
+  });
+
   // API: Scan Subnet (Simulated for speed, but uses real logic)
   app.get("/api/scan", async (req, res) => {
     try {

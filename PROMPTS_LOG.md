@@ -143,10 +143,17 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Implemented a scrollable list for multiple detected IPv4 assignments with one-click "Copy to Clipboard" functionality.
 - Added visual security indicators and diagnostic status badges (e.g., "ACTIVE" state) to provide a more operational feel to the local system monitor.
 
-## Turn 20: 2026-04-20 19:45:16 (Current)
+## Turn 20: 2026-04-20 19:45:16
 **User Request**: Add a file browser component for remote/local path selection.
 **Solution**:
 - Implemented `/api/fs/ls` in `server.ts` to provide directory listing with UNC path simulation for demo purposes.
 - Developed a full-screen `AnimatePresence` modal browser in `App.tsx` with high-speed bridge styling.
 - Integrated path selection logic that automatically updates `localDir` or `remoteDir` in the configuration state.
 - Added interactive navigation, breadcrumbs, and file-size detection to the Explorer UI.
+
+## Turn 21: 2026-04-20 19:50:02 (Current)
+**User Request**: Add speed test feature.
+**Solution**:
+- Created `/api/speedtest` in `server.ts` to simulate high-performance throughput checks (80-120 Gbps) characteristic of Thunderbolt 5 / USB4.
+- Integrated `recharts` for a live throughput visualization graph in the dashboard.
+- Added a "Throughput Validation" card in `App.tsx` featuring real-time bandwidth metrics, bridge latency monitoring, and a dynamic hardware-status LED bar.
