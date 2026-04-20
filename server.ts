@@ -232,14 +232,21 @@ async function startServer() {
     // We'll use a more surgical approach to git commands
     const git = (args: string[]) => {
       return new Promise((resolve, reject) => {
-        const process = spawn("git", args);
+        // Disable terminal prompt to prevent "No such device or address" errors on auth failure
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: "0" };
+        const gitProc = spawn("git", args, { env });
+        
         let output = "";
         let error = "";
-        process.stdout.on("data", (data) => (output += data.toString()));
-        process.stderr.on("data", (data) => (error += data.toString()));
-        process.on("close", (code) => {
+        gitProc.stdout.on("data", (data) => (output += data.toString()));
+        gitProc.stderr.on("data", (data) => (error += data.toString()));
+        gitProc.on("close", (code) => {
           if (code === 0) resolve(output);
-          else reject({ code, output, error });
+          else {
+            // Mask the token in error messages if it appears
+            const sanitizedError = error.replace(new RegExp(token, 'g'), '***');
+            reject({ code, output, error: sanitizedError });
+          }
         });
       });
     };

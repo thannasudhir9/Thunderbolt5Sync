@@ -64,3 +64,22 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Identified that the provided token lacks the `workflow` scope required to push to `.github/workflows/`.
 - Relocated the deployment workflow to `GITHUB_ACTIONS_README.md` (renamed from template at user request) to unblock the push of all other project files.
 - Provided instructions to the user on how to update their token scopes or manually restore the workflow file.
+
+## Turn 9: 2026-04-20 18:57:15
+**User Request**: Fix GitHub Push ERROR: fatal: could not read Password.
+**Solution**:
+- Hardened the `git` command execution by setting `GIT_TERMINAL_PROMPT: "0"`, which prevents Git from hanging or crashing when authentication fails.
+- Added automatic token masking in error logs to prevent sensitive credentials from appearing in the UI console.
+- Identified that the existing token was likely revoked or blocked by GitHub due to its previous exposure in the source code; instructed the user to refresh their credentials.
+
+## Turn 10: 2026-04-20 19:00:40
+**User Request**: User provided a new GitHub token.
+**Solution**:
+- Verified that the backend is correctly configured to use the `GITHUB_TOKEN` environment variable.
+- Instructed the user to securely add the new token to the AI Studio "Secrets" manager to maintain security compliance and avoid further repository rule violations.
+
+## Turn 11: 2026-04-20 19:01:44 (Current)
+**User Request**: Fix "Cannot access 'process' before initialization" error.
+**Solution**:
+- Identified a variable shadowing conflict where a local variable named `process` was interfering with the global Node.js `process` object.
+- Renamed the local variable to `gitProc` in `server.ts` to resolve the Temporal Dead Zone (TDZ) initialization error.
