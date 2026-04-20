@@ -37,27 +37,55 @@ async function startServer() {
   // API: Get status
   app.get("/api/status", async (req, res) => {
     try {
-      // In a real local environment, we'd use 'ping' or a socket check
-      // For this preview, we'll simulate the check if not on Windows
       const isWindows = process.platform === "win32";
-      const pingCmd = isWindows ? "ping" : "ping";
+      const pingCmd = "ping";
       const pingArgs = isWindows ? ["-n", "1", config.remoteIp] : ["-c", "1", config.remoteIp];
 
-      const child = spawn(pingCmd, pingArgs);
+      // We'll give ping 2 seconds to respond
+      const child = spawn(pingCmd, pingArgs, { timeout: 2000 });
       
+      let responded = false;
+
       child.on("close", (code) => {
+        if (responded) return;
+        responded = true;
         res.json({ 
           connected: code === 0, 
           ip: config.remoteIp,
-          os: process.platform
+          os: process.platform,
+          method: "ping"
         });
       });
 
-      child.on("error", () => {
-        res.json({ connected: false, error: "Ping command failed" });
+      child.on("error", (err) => {
+        if (responded) return;
+        responded = true;
+        console.warn(`Ping check failed for ${config.remoteIp}: ${err.message}`);
+        // Fallback: If ping isn't available (common in some restricted environments), 
+        // we'll report disconnected but provide the error so the UI can log it.
+        res.json({ 
+          connected: false, 
+          ip: config.remoteIp,
+          error: `Network check restricted: ${err.message}. This is expected in some cloud environments. It will work natively on your Windows Mini PCs.`
+        });
       });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to check status" });
+
+      // Safety timeout if hooks don't fire
+      setTimeout(() => {
+        if (!responded) {
+          responded = true;
+          child.kill();
+          res.json({ connected: false, timeout: true, ip: config.remoteIp });
+        }
+      }, 3000);
+
+    } catch (error: any) {
+      console.error("Status check crash:", error);
+      res.json({ 
+        connected: false, 
+        error: "Internal check failure",
+        details: error.message 
+      });
     }
   });
 
@@ -212,33 +240,38 @@ async function startServer() {
       await git(["config", "user.name", "AI-Studio-Agent"]);
       await git(["config", "user.email", "agent@ai.studio"]);
       
+      log += "Ensuring local branch is 'master'...\n";
+      await git(["checkout", "-b", "master"]).catch(() => git(["checkout", "master"]));
+      
       log += "Adding files...\n";
       await git(["add", "."]);
       
       try {
-        await git(["commit", "-m", "Auto-sync from Thunderbolt Sync Dashboard"]);
+        await git(["commit", "-m", "Manual Snapshot: Thunderbolt Sync Dashboard"]);
         log += "Committed changes.\n";
       } catch (e: any) {
-        log += "Nothing to commit or commit failed.\n";
+        log += "Nothing to commit or already up to date.\n";
       }
 
-      log += "Syncing with remote...\n";
-      // Try to pull first with unrelated histories allowed
+      log += "Pushing to remote repository (Force)...\n";
+      // We push local 'master' to remote 'master'
       try {
-        await git(["pull", gitUrl, "master", "--allow-unrelated-histories"]);
-        log += "Pulled latest from master.\n";
+        const pushOutput: any = await git(["push", gitUrl, "master", "--force"]);
+        log += "Master push successful!\n" + pushOutput;
       } catch (e: any) {
-        log += `Pull skipped or failed (common on new repos): ${e.error || e.message}\n`;
+        log += `Master push failed: ${e.error || e.message}. Trying 'main' branch...\n`;
+        // Try pushing to 'main' as a fallback if the remote expects main
+        await git(["branch", "-M", "main"]);
+        const pushOutput: any = await git(["push", gitUrl, "main", "--force"]);
+        log += "Main push successful!\n" + pushOutput;
       }
-
-      log += "Pushing to master...\n";
-      const pushOutput: any = await git(["push", gitUrl, "master", "--force"]);
-      log += "Push successful!\n" + pushOutput;
 
       res.json({ status: "Success", output: log });
     } catch (error: any) {
-      log += `FATAL ERROR: ${error.error || error.message || JSON.stringify(error)}\n`;
-      res.status(500).json({ status: "Error", message: "Git operation failed", output: log });
+      const errorDetail = error.error || error.message || JSON.stringify(error);
+      log += `FATAL ERROR: ${errorDetail}\n`;
+      // We send the full log as the message so the user can see exactly why it failed in the alert
+      res.status(500).json({ status: "Error", message: errorDetail, output: log });
     }
   });
 

@@ -28,9 +28,24 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Added a functional "Deploy to GitHub" button in the application header.
 - Implemented `/api/github/push` to automate git initialization and remote syncing.
 
-## Turn 4: 2026-04-20 18:42:14 (Current)
+## Turn 4: 2026-04-20 18:42:14
 **User Request**: Resolve GitHub Push ERROR code 1, and provide local setup guide.
 **Solution**:
 - Refactored `server.ts` git logic: Added `--allow-unrelated-histories` to `git pull` and `--force` to `git push`.
 - Improved error logging in the backend to provide a step-by-step trace of git operations.
 - Created `LOCAL_SETUP_GUIDE.md` with explicit hardware and software configuration steps for local execution.
+
+## Turn 5: 2026-04-20 18:46:24
+**User Request**: Resolve persistent GitHub Push ERROR.
+**Solution**:
+- Implemented a "Master-then-Main" push strategy to handle branch naming conflicts between local and remote environments.
+- Added explicit branch normalization (`git checkout -b master`) and fallback branch renaming (`git branch -M main`).
+- Switched to a pure "Force Replace" strategy for pushing to ensure repository synchronization regardless of historical conflicts.
+- Enhanced error reporting to surface granular `stderr` output to the user UI for faster troubleshooting.
+
+## Turn 6: 2026-04-20 18:47:36 (Current)
+**User Request**: Fix "Failed to check status" error.
+**Solution**:
+- Hardened the `/api/status` endpoint in `server.ts` by adding a 2-second timeout and robust error handling for the `ping` command.
+- Prevented 500 errors by catching all exceptions and returning a detailed error JSON instead.
+- Added a descriptive fallback message for cloud environments where ICMP/Ping is restricted, ensuring the UI remains functional without crashing.
