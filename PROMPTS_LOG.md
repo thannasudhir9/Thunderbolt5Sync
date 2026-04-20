@@ -84,10 +84,46 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Identified a variable shadowing conflict where a local variable named `process` was interfering with the global Node.js `process` object.
 - Renamed the local variable to `gitProc` in `server.ts` to resolve the Temporal Dead Zone (TDZ) initialization error.
 
-## Turn 12: 2026-04-20 19:04:26 (Current)
+## Turn 12: 2026-04-20 19:04:26
 **User Request**: Fix "Failed to check status" and "Failed to scan network" console errors.
 **Solution**:
 - Hardened the `/api/scan` endpoint by wrapping it in a try-catch block and adding an `.on("error")` handler for the spawned `arp` process.
 - Implemented a 3-second safety timeout for the network scanner to prevent hanging requests when OS commands fail or are restricted.
 - Updated the React frontend to gracefully handle non-ok HTTP responses and provided more descriptive logging in the application console.
 - Ensured a consistent fallback to demo nodes if network discovery is blocked by the environment, maintaining UI interactivity.
+
+## Turn 13: 2026-04-20 19:11:42
+**User Request**: Sync the `.github/workflows/deploy.yml` from GitHub back to the project.
+**Solution**:
+- Implemented a new `/api/github/pull` endpoint in `server.ts` that performs a `git fetch` and `git reset --hard` to synchronize the local container with the remote GitHub repository.
+- Added a "Sync from GitHub" button to the application header to allow the user to pull files (like the workflow config) from GitHub into the dashboard environment.
+- Integrated `ArrowDownCircle` icon for the sync action.
+
+## Turn 14: 2026-04-20 19:15:35
+**User Request**: Fix "Sync from GitHub" button not appearing to work/logs missing.
+**Solution**:
+- Replaced blocking `window.confirm` and `window.alert` calls with a custom UI-based two-step confirmation flow, as browser-level prompts are often blocked within iframes.
+- Added server-side logging to the `/api/github/pull` endpoint to provide better observability during synchronization.
+- Implemented an automatic page reload after a successful sync to ensure the browser UI matches the newly pulled code.
+
+## Turn 15: 2026-04-20 19:17:44
+**User Request**: Fix "Failed to check status: Failed to fetch" error after sync.
+**Solution**:
+- Identified that the "Failed to fetch" error occurs when the backend server is temporarily offline during a restart cycle triggered by the `git pull` update.
+- Issued a manual `restart_dev_server` command to ensure the backend is correctly bound and listening after the code refresh.
+- Updated the frontend `checkStatus` function with an `AbortController` timeout and a better "Connecting to backend..." UI state to communicate to the user that the server is simply rebooting.
+
+## Turn 16: 2026-04-20 19:21:22
+**User Request**: Fix "signal is aborted without reason" and "Failed to fetch" errors.
+**Solution**:
+- Identified that the user's manual "Sync from GitHub" operation was reverting `App.tsx` and `server.ts` to older states (from the remote repo), wiping my recent code improvements and causing unstable connection states.
+- Re-implemented the hardened `checkStatus` logic with an increased 10-second timeout to accommodate slow server reboot cycles after heavy file operations.
+- Restored the "Sync from GitHub" UI and backend sync endpoint to maintain system functionality.
+- Explicitly instructed the user to "Deploy to GitHub" immediately after this fix to permanentize the improvements on their remote repository and prevent future "Sync Reversions".
+
+## Turn 17: 2026-04-20 19:23:01 (Current)
+**User Request**: Fix `deploy.yml` for GitHub Pages.
+**Solution**:
+- Updated `.github/workflows/deploy.yml` to include the necessary `permissions` and GitHub Actions steps to build and deploy the app directly to GitHub Pages.
+- Modified `vite.config.ts` to include `base: './'` so that assets load correctly from relative paths on GitHub Pages subdirectories.
+- Informed the user that GitHub Pages only supports static hosting; the Express backend and its associated hardware features (Sync/Scan) will not function on that platform.

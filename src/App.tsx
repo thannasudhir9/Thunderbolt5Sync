@@ -12,7 +12,8 @@ import {
   Activity,
   ArrowRightLeft,
   Github,
-  CloudUpload
+  CloudUpload,
+  ArrowDownCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -48,6 +49,8 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
+  const [isPulling, setIsPulling] = useState(false);
+  const [showPullConfirm, setShowPullConfirm] = useState(false);
   const [syncResult, setSyncResult] = useState<{ status: string; message: string; details?: string } | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
 
@@ -78,6 +81,29 @@ export default function App() {
       setLogs(prev => [`[${new Date().toLocaleTimeString()}] GitHub Push FAILED: Network error`, ...prev]);
     } finally {
       setIsPushing(false);
+    }
+  };
+
+  const pullFromGithub = async () => {
+    if (isPulling) return;
+    
+    setIsPulling(true);
+    setShowPullConfirm(false);
+    setLogs(prev => [`[${new Date().toLocaleTimeString()}] Fetching latest code from GitHub...`, ...prev]);
+    try {
+      const res = await fetch('/api/github/pull', { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'Success') {
+        setLogs(prev => [`[${new Date().toLocaleTimeString()}] GitHub Pull SUCCESS. Project is now up-to-date. Refreshing...`, ...prev]);
+        // Give the logs a moment to be seen before potentially restarting
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        setLogs(prev => [`[${new Date().toLocaleTimeString()}] GitHub Pull ERROR: ${data.message}`, ...prev]);
+      }
+    } catch (err) {
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] GitHub Pull FAILED: Network error`, ...prev]);
+    } finally {
+      setIsPulling(false);
     }
   };
 
@@ -132,15 +158,30 @@ export default function App() {
 
   const checkStatus = async () => {
     try {
-      const res = await fetch('/api/status');
+      const controller = new AbortController();
+      // Increased timeout to accommodate server reboot cycles
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const res = await fetch('/api/status', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setStatus(data);
     } catch (err: any) {
-      console.error('Failed to check status:', err);
-      // We don't log to the UI console for status to prevent spam, 
-      // but we update the status object to show the error
-      setStatus({ connected: false, error: "Status check failed. Please check backend connection." });
+      // Gracefully handle server restarts after syncs
+      const isNetworkError = err.name === 'AbortError' || err.message.includes('fetch');
+      
+      if (!isNetworkError) {
+        console.error('Status check failed:', err.message);
+      }
+      
+      setStatus({ 
+        connected: false, 
+        error: isNetworkError 
+          ? "Connecting to backend... (Server is rebooting after code sync)" 
+          : "Connection lost. Please check backend host." 
+      });
     }
   };
 
@@ -190,7 +231,44 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <AnimatePresence>
+              {showPullConfirm && (
+                <motion.button
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  onClick={pullFromGithub}
+                  className="bg-red-500/20 border border-red-500/40 text-red-400 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase cursor-pointer"
+                >
+                  Confirm Overwrite
+                </motion.button>
+              )}
+            </AnimatePresence>
+
+            <button 
+              onClick={() => showPullConfirm ? setShowPullConfirm(false) : setShowPullConfirm(true)}
+              disabled={isPulling}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[10px] font-bold uppercase tracking-wider
+                ${isPulling 
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 cursor-wait' 
+                  : showPullConfirm
+                    ? 'bg-white/10 border-white/20 text-white cursor-pointer'
+                    : 'bg-white/5 border-white/10 hover:border-white/20 text-[#71717A] hover:text-white cursor-pointer active:scale-95'}`}
+              title="Overwrite local code with latest from GitHub"
+            >
+              {isPulling ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : showPullConfirm ? (
+                <AlertCircle className="w-3 h-3" />
+              ) : (
+                <ArrowDownCircle className="w-3 h-3" />
+              )}
+              {isPulling ? 'Syncing...' : showPullConfirm ? 'Cancel' : 'Sync from GitHub'}
+            </button>
+          </div>
+
           <button 
             onClick={pushToGithub}
             disabled={isPushing}

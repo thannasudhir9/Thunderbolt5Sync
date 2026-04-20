@@ -313,6 +313,66 @@ async function startServer() {
     }
   });
 
+  // API: Pull from GitHub (Restoring after sync revert)
+  app.post("/api/github/pull", async (req, res) => {
+    console.log("GitHub Pull request received");
+    const token = process.env.GITHUB_TOKEN;
+    const repoUrl = "github.com/thannasudhir9/Thunderbolt5Sync.git";
+    
+    if (!token) {
+      return res.status(400).json({ 
+        status: "Error", 
+        message: "GITHUB_TOKEN environment variable is missing." 
+      });
+    }
+
+    const gitUrl = `https://${token}@${repoUrl}`;
+    
+    const git = (args: string[]) => {
+      return new Promise((resolve, reject) => {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: "0" };
+        const gitProc = spawn("git", args, { env });
+        let output = "";
+        let error = "";
+        gitProc.stdout.on("data", (data) => (output += data.toString()));
+        gitProc.stderr.on("data", (data) => (error += data.toString()));
+        gitProc.on("close", (code) => {
+          if (code === 0) resolve(output);
+          else {
+            const sanitizedError = error.replace(new RegExp(token, 'g'), '***');
+            reject({ code, output, error: sanitizedError });
+          }
+        });
+      });
+    };
+
+    let log = "";
+    try {
+      log += "Fetching latest changes from remote...\n";
+      // We force a reset to match the remote state exactly
+      await git(["init"]);
+      await git(["remote", "remove", "origin"]).catch(() => {});
+      await git(["remote", "add", "origin", gitUrl]);
+      await git(["fetch", "origin"]);
+      
+      log += "Resetting local to match remote master/main...\n";
+      try {
+        await git(["reset", "--hard", "origin/master"]);
+        log += "Successfully reset to origin/master.\n";
+      } catch (e: any) {
+        log += "Master branch not found, trying main...\n";
+        await git(["reset", "--hard", "origin/main"]);
+        log += "Successfully reset to origin/main.\n";
+      }
+
+      res.json({ status: "Success", output: log });
+    } catch (error: any) {
+      const errorDetail = error.error || error.message || JSON.stringify(error);
+      log += `PULL ERROR: ${errorDetail}\n`;
+      res.status(500).json({ status: "Error", message: errorDetail, output: log });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
