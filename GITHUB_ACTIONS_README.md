@@ -1,3 +1,10 @@
+# GitHub Actions Deployment Workflow
+
+To use this workflow, your GitHub Personal Access Token must have the `workflow` scope enabled. 
+
+If you have the correct scope, create a file at `.github/workflows/deploy.yml` and paste the following content:
+
+```yaml
 name: Deploy to GitHub
 
 on:
@@ -24,3 +31,4 @@ jobs:
         
       - name: Verification
         run: npm run lint
+```

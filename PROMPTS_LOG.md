@@ -50,10 +50,17 @@ This log documents the iterative development of the Thunderbolt 5 Sync Dashboard
 - Prevented 500 errors by catching all exceptions and returning a detailed error JSON instead.
 - Added a descriptive fallback message for cloud environments where ICMP/Ping is restricted, ensuring the UI remains functional without crashing.
 
-## Turn 7: 2026-04-20 18:48:59 (Current)
+## Turn 7: 2026-04-20 18:48:59
 **User Request**: Resolve GITHUB PUSH PROTECTION rule violation (secret scanning).
 **Solution**:
 - Removed the hardcoded Personal Access Token from `server.ts` to comply with GitHub Security best practices.
 - Transitioned the GitHub integration to use a `GITHUB_TOKEN` environment variable.
 - Updated `.env.example` to guide user on secure secret configuration.
 - Instructed user on how to add the token to AI Studio "Secrets" and how to bypass the repository rule violation if necessary.
+
+## Turn 8: 2026-04-20 18:50:29 (Current)
+**User Request**: Resolve workflow scope rejection from GitHub.
+**Solution**:
+- Identified that the provided token lacks the `workflow` scope required to push to `.github/workflows/`.
+- Relocated the deployment workflow to `GITHUB_ACTIONS_TEMPLATE.md` to unblock the push of all other project files.
+- Provided instructions to the user on how to update their token scopes or manually restore the workflow file.
